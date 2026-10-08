@@ -143,9 +143,16 @@ function AnalyticsRow({ video, handle }: { video: Video; handle: string }) {
       <td>{video.published ? 'Опубликован' : STAGE_LABEL[video.stage]}</td>
       <td className="num">{views === undefined ? '—' : formatNumber(views)}</td>
       <td className="num">
-        {reactions === null || !video.stats
-          ? '—'
-          : `${formatNumber(reactions)} · ${formatNumber(video.stats.likes)} / ${formatNumber(video.stats.comments)} / ${formatNumber(video.stats.shares)}`}
+        {reactions === null || !video.stats ? (
+          '—'
+        ) : (
+          <>
+            {formatNumber(reactions)}
+            <span className="reaction-split">
+              {formatNumber(video.stats.likes)} · {formatNumber(video.stats.comments)} · {formatNumber(video.stats.shares)}
+            </span>
+          </>
+        )}
       </td>
       <td className="num">{cost ? formatMoney(cost) : 'не списано'}</td>
       <td className="num">{perThousand === null ? '—' : formatMoney(perThousand)}</td>

@@ -269,9 +269,18 @@ function CostBar({ voice, avatar, assembly }: { voice: number; avatar: number; a
         <span className="costbar__assembly" />
       </div>
       <ul className="legend">
-        <li>Озвучка {formatMoney(voice)}</li>
-        <li>Аватар {formatMoney(avatar)}</li>
-        <li>Сборка {formatMoney(assembly)}</li>
+        <li>
+          <span className="swatch swatch--voice" />
+          Озвучка {formatMoney(voice)}
+        </li>
+        <li>
+          <span className="swatch swatch--avatar" />
+          Аватар {formatMoney(avatar)}
+        </li>
+        <li>
+          <span className="swatch swatch--assembly" />
+          Сборка {formatMoney(assembly)}
+        </li>
       </ul>
     </div>
   )

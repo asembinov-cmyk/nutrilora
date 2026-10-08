@@ -116,6 +116,7 @@ export function Calendar() {
                     <p className="muted">
                       {account.handle} · {account.niche}
                     </p>
+                    {activeIssue(video) && <p className="hint">Сначала снимите учебную ошибку в редакторе.</p>}
                     <div className="actions">
                       <button type="button" className="btn btn--primary" onClick={() => dispatch({ type: 'open-video', id: video.id })}>
                         В редактор

@@ -485,6 +485,38 @@ button {
   font-size: 13px;
 }
 
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+}
+
+.swatch--voice {
+  background: var(--green-800);
+}
+
+.swatch--avatar {
+  background: var(--green-600);
+}
+
+.swatch--assembly {
+  background: #b7d4c4;
+}
+
+.reaction-split {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
 .plain-list,
 .error-list,
 .day-list {
@@ -591,8 +623,7 @@ button {
   gap: 12px;
 }
 
-.account-card .btn--primary,
-.integration .btn {
+.account-card .btn--primary {
   margin-top: auto;
   align-self: flex-start;
 }
