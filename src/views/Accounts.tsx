@@ -3,6 +3,7 @@ import { DemoMark, LangChip } from '../components'
 import { useStore } from '../store'
 import type { Account, Language } from '../types'
 import { DEMO_TODAY, formatDay, plural } from '../utils'
+import { DemoImportCard, NewAccountForm } from './LibraryForms'
 
 export function Accounts() {
   const { state } = useStore()
@@ -16,7 +17,9 @@ export function Accounts() {
         <div>
           <h1 className="page-title">Аккаунты TikTok</h1>
           <p className="page-lead">
-            Ниша, язык и план роликов в день. Изменения живут только в этом сеансе и не уходят в кабинеты.
+            {state.mode === 'live'
+              ? 'Ниша, язык и план роликов в день сохраняются в Supabase. Кабинет TikTok при этом не меняется.'
+              : 'Ниша, язык и план роликов в день. Изменения живут только в этом сеансе и не уходят в кабинеты.'}
           </p>
         </div>
         <DemoMark />
@@ -30,6 +33,9 @@ export function Accounts() {
         </div>
       </div>
 
+      {state.mode === 'live' && <NewAccountForm />}
+      {state.mode === 'live' && <DemoImportCard />}
+
       <div className="account-grid">
         {visible.map((account) => (
           <AccountCard key={account.id} account={account} />
@@ -38,8 +44,9 @@ export function Accounts() {
       {visible.length === 0 && <p className="empty">Нет аккаунтов с выбранным языком.</p>}
 
       <p className="footnote">
-        Подписчики и живой статус кабинета появятся после подключения TikTok. Сейчас на {formatDay(DEMO_TODAY)} план
-        сравнивается только с демо-календарём.
+        {state.mode === 'live'
+          ? `Подписчики и живой статус кабинета появятся после подключения TikTok. План на ${formatDay(DEMO_TODAY)} сравнивается со слотами календаря.`
+          : `Подписчики и живой статус кабинета появятся после подключения TikTok. Сейчас на ${formatDay(DEMO_TODAY)} план сравнивается только с демо-календарём.`}
       </p>
     </div>
   )

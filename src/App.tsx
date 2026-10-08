@@ -32,7 +32,7 @@ const VIEWS = {
 }
 
 export function App() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, reload, signOut } = useStore()
 
   useEffect(() => {
     document.title = `${SECTION_LABEL[state.section]} · Контент-завод Nutrilora`
@@ -83,18 +83,43 @@ export function App() {
           })}
         </nav>
         <div className="sidebar__foot">
-          <p className="hint">Этап 1 · учебный срез. Обновление страницы вернёт исходные данные.</p>
-          <button type="button" className="btn btn--ghost btn--block" onClick={() => dispatch({ type: 'reset' })}>
-            Сбросить сеанс
-          </button>
+          {state.mode === 'demo' ? (
+            <>
+              <p className="hint">Этап 1 · учебный срез. Обновление страницы вернёт исходные данные.</p>
+              <button type="button" className="btn btn--ghost btn--block" onClick={() => dispatch({ type: 'reset' })}>
+                Сбросить сеанс
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="hint">{state.email}</p>
+              <button type="button" className="btn btn--ghost btn--block" onClick={() => reload()}>
+                Обновить из базы
+              </button>
+              <button type="button" className="btn btn--ghost btn--block" onClick={() => signOut()}>
+                Выйти
+              </button>
+            </>
+          )}
         </div>
       </aside>
       <div className="main">
         <div className="sticky-head">
-          <div className="banner" role="status">
-            <span className="chip chip--demo">Демонстрационные данные</span>
-            <p>Цифры, ролики и статусы учебные. API и реальные видео пока не подключены.</p>
-          </div>
+          {state.mode === 'demo' ? (
+            <div className="banner" role="status">
+              <span className="chip chip--demo">Демонстрационные данные</span>
+              <p>Цифры, ролики и статусы учебные. API и реальные видео пока не подключены.</p>
+            </div>
+          ) : (
+            <div className="banner banner--live" role="status">
+              <span className="chip chip--ru">{state.status === 'loading' ? 'Загрузка' : 'База владельца'}</span>
+              <p>
+                {state.status === 'loading'
+                  ? 'Читаем аккаунты, ролики и календарь.'
+                  : 'Данные читаются из Supabase. HeyGen, ElevenLabs, n8n и Creatomate не подключены.'}
+              </p>
+            </div>
+          )}
           <header className="topbar">
             <p className="topbar__date">{formatDayLong(DEMO_TODAY)}</p>
             <div className="role" role="group" aria-label="Роль на панели">

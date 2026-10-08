@@ -11,20 +11,41 @@ const CHECKS = [
 ]
 
 export function Editor() {
-  const { state, dispatch, accountOf, selected } = useStore()
+  const { state, dispatch, selected } = useStore()
   const video = selected
-  const account = accountOf(video.accountId)
+  const account = video ? (state.accounts.find((item) => item.id === video.accountId) ?? null) : null
   const [checks, setChecks] = useState<Record<string, boolean>>({})
   const [reviseOpen, setReviseOpen] = useState(false)
   const [note, setNote] = useState('')
-  const [slot, setSlot] = useState(video.scheduledAt ?? DEMO_TODAY)
+  const [slot, setSlot] = useState(video?.scheduledAt ?? DEMO_TODAY)
+  const live = state.mode === 'live'
 
   useEffect(() => {
+    if (!video) return
     setChecks({})
     setReviseOpen(false)
     setNote('')
     setSlot(video.scheduledAt ?? DEMO_TODAY)
-  }, [video.id, video.scheduledAt])
+  }, [video?.id, video?.scheduledAt])
+
+  if (!video || !account) {
+    return (
+      <div className="page">
+        <header className="page-head">
+          <div>
+            <h1 className="page-title">Редактор</h1>
+            <p className="page-lead">Сначала выберите ролик или добавьте тему.</p>
+          </div>
+        </header>
+        <section className="card">
+          <p className="empty">В библиотеке нет ролика для правки.</p>
+          <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'section', section: 'production' })}>
+            К производству
+          </button>
+        </section>
+      </div>
+    )
+  }
 
   const checked = CHECKS.every((item) => checks[item.id])
   const issueOpen = activeIssue(video)
@@ -53,7 +74,11 @@ export function Editor() {
       <header className="page-head">
         <div>
           <h1 className="page-title">Редактор</h1>
-          <p className="page-lead">Сценарий, источники и предпросмотр. Решение остаётся в демо-линии.</p>
+          <p className="page-lead">
+            {live
+              ? 'Сценарий, источники и предпросмотр. Решение записывается в базу, видеофайл не создаётся.'
+              : 'Сценарий, источники и предпросмотр. Решение остаётся в демо-линии.'}
+          </p>
         </div>
         <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'section', section: 'production' })}>
           К производству
@@ -109,7 +134,9 @@ export function Editor() {
               />
             </label>
             <p className="hint">Ориентир короткого ролика — до 700 знаков. Оценка длительности {video.duration}.</p>
-            {video.published && <p className="hint">Опубликованный демо-ролик открыт для чтения.</p>}
+            {video.published && (
+              <p className="hint">{live ? 'Опубликованный ролик открыт для чтения.' : 'Опубликованный демо-ролик открыт для чтения.'}</p>
+            )}
           </section>
 
           {video.gloss && (
@@ -148,7 +175,7 @@ export function Editor() {
               <h2 className="card__title">{video.issue.title}</h2>
               <p>{video.issue.detail}</p>
               <button type="button" className="btn btn--warn" onClick={() => dispatch({ type: 'dismiss-issue', id: video.id })}>
-                Снять учебную отметку
+                {live ? 'Снять отметку' : 'Снять учебную отметку'}
               </button>
             </section>
           )}
@@ -266,14 +293,18 @@ export function Editor() {
                 </button>
               </div>
             )}
-            <p className="hint">Демо-переход не вызывает API и не создаёт видеофайл.</p>
+            <p className="hint">
+              {live ? 'Переход не вызывает HeyGen и Creatomate и не создаёт видеофайл.' : 'Демо-переход не вызывает API и не создаёт видеофайл.'}
+            </p>
           </section>
 
           <section className="card">
             <h2 className="card__title">Слот публикации</h2>
             {video.stage !== 'ready' && <p className="hint">Слот ставится после этапа «Готово».</p>}
             {video.stage === 'ready' && video.published && video.scheduledAt && (
-              <p>Опубликован в демо-календаре {formatDay(video.scheduledAt)}.</p>
+              <p>
+                {live ? 'Опубликован' : 'Опубликован в демо-календаре'} {formatDay(video.scheduledAt)}.
+              </p>
             )}
             {video.stage === 'ready' && !video.published && (
               <>

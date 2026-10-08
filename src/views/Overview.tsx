@@ -1,5 +1,6 @@
 import { DemoMark } from '../components'
 import { useStore } from '../store'
+import { DemoImportCard, NewAccountForm } from './LibraryForms'
 import type { Video } from '../types'
 import {
   activeIssue,
@@ -16,6 +17,7 @@ import {
 export function Overview() {
   const { state, dispatch, accountOf } = useStore()
   const { videos, accounts, role } = state
+  const live = state.mode === 'live'
   const ready = videos.filter((video) => video.stage === 'ready')
   const published = videos.filter((video) => video.published)
   const issues = videos.filter(activeIssue)
@@ -38,21 +40,39 @@ export function Overview() {
         <div>
           <h1 className="page-title">Обзор</h1>
           <p className="page-lead">
-            Готовые ролики, публикации, расходы и ошибки на демо-дату {formatDay(DEMO_TODAY)}. Цифры
-            считаются по библиотеке этого сеанса.
+            {live
+              ? `Готовые ролики, публикации, расходы и ошибки. Дата панели — ${formatDay(DEMO_TODAY)}.`
+              : `Готовые ролики, публикации, расходы и ошибки на демо-дату ${formatDay(DEMO_TODAY)}. Цифры считаются по библиотеке этого сеанса.`}
           </p>
         </div>
       </header>
 
+      {live && state.status === 'error' && accounts.length === 0 && (
+        <section className="card">
+          <h2 className="card__title">Библиотека не прочиталась</h2>
+          <p className="hint">Проверьте, что вход выполнен, и обновите данные из базы.</p>
+        </section>
+      )}
+      <DemoImportCard />
+      {live && accounts.length === 0 && state.status === 'ready' && <NewAccountForm />}
+
       <section className="kpis" aria-label="Сводные показатели">
-        <Kpi label="Готовые ролики" value={formatNumber(ready.length)} hint="Сняты и собраны в демо-библиотеке" />
+        <Kpi
+          label="Готовые ролики"
+          value={formatNumber(ready.length)}
+          hint={live ? 'Этап «Готово»' : 'Сняты и собраны в демо-библиотеке'}
+        />
         <Kpi
           label="Публикации"
           value={formatNumber(published.length)}
-          hint="Отметки в демо-календаре, без кабинета TikTok"
+          hint={live ? 'Отметки в календаре, без кабинета TikTok' : 'Отметки в демо-календаре, без кабинета TikTok'}
         />
         <Kpi label="Расходы" value={formatMoney(spend)} hint="Оценка производства, платежей нет" />
-        <Kpi label="Ошибки" value={formatNumber(issues.length)} hint="Учебные отметки, не боевые сбои" />
+        <Kpi
+          label="Ошибки"
+          value={formatNumber(issues.length)}
+          hint={live ? 'Отметки на роликах, не сбои внешних сервисов' : 'Учебные отметки, не боевые сбои'}
+        />
       </section>
 
       <section className="card">
@@ -174,7 +194,7 @@ export function Overview() {
             <DemoMark />
           </div>
           {issues.length === 0 ? (
-            <p className="empty">Активных учебных отметок нет.</p>
+            <p className="empty">{live ? 'Активных отметок нет.' : 'Активных учебных отметок нет.'}</p>
           ) : (
             <ul className="error-list">
               {issues.map((video) => (

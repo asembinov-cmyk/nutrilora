@@ -1058,6 +1058,54 @@ button {
   border-radius: 99px;
 }
 
+.status.is-on {
+  color: var(--green-800);
+}
+
+.status.is-on .status__dot {
+  border-color: var(--green-600);
+  background: var(--green-600);
+}
+
+.banner--live {
+  border-color: #cfe3d6;
+  background: var(--green-100);
+  color: var(--green-900);
+}
+
+.auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth__card {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: white;
+}
+
+.auth__wait {
+  margin: 0;
+  color: var(--muted);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.sidebar__foot .btn + .btn {
+  margin-top: 8px;
+}
+
 .notice-inline {
   margin: 10px 0 0;
   padding: 10px 12px;

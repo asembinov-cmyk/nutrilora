@@ -29,7 +29,9 @@ export function Calendar() {
         <div>
           <h1 className="page-title">Календарь публикаций</h1>
           <p className="page-lead">
-            Слоты демо-библиотеки. Отметка «опубликовано» остаётся на этой панели и не уходит в TikTok.
+            {state.mode === 'live'
+              ? 'Слоты из базы. Отметка «опубликовано» остаётся на этой панели и не уходит в TikTok.'
+              : 'Слоты демо-библиотеки. Отметка «опубликовано» остаётся на этой панели и не уходит в TikTok.'}
           </p>
         </div>
       </header>
@@ -94,7 +96,11 @@ export function Calendar() {
 
         <aside className="card day-panel">
           <h2 className="card__title">{formatDayLong(state.selectedDay)}</h2>
-          {state.selectedDay === DEMO_TODAY && <p className="chip chip--demo">Демо-сегодня</p>}
+          {state.selectedDay === DEMO_TODAY && (
+            <p className={state.mode === 'live' ? 'chip chip--ru' : 'chip chip--demo'}>
+              {state.mode === 'live' ? 'Сегодня' : 'Демо-сегодня'}
+            </p>
+          )}
           {selected.length === 0 ? (
             <p className="empty">На этот день слотов нет. Готовый ролик ставится из редактора.</p>
           ) : (
