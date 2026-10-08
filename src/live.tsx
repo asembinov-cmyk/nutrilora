@@ -35,10 +35,16 @@ export function LiveStore({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) return
     let alive = true
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!alive) return
-      setEmail(data.session ? (data.session.user.email ?? 'владелец') : null)
-    })
+    void supabase.auth.getSession().then(
+      ({ data }) => {
+        if (!alive) return
+        setEmail(data.session ? (data.session.user.email ?? 'владелец') : null)
+      },
+      () => {
+        if (!alive) return
+        setEmail(null)
+      },
+    )
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session ? (session.user.email ?? 'владелец') : null)
     })
