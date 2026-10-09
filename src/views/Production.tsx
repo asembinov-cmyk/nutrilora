@@ -2,6 +2,7 @@ import { LangChip, StageChip } from '../components'
 import { useFilteredVideos, useStore } from '../store'
 import type { Language } from '../types'
 import { cx, excerpt, STAGE_LABEL, STAGE_ORDER } from '../utils'
+import { NewTopicForm } from './LibraryForms'
 
 export function Production() {
   const { state, dispatch } = useStore()
@@ -15,11 +16,14 @@ export function Production() {
         <div>
           <h1 className="page-title">Производство</h1>
           <p className="page-lead">
-            Темы → сценарии → генерация → проверка → готово. Карточка открывает редактор. Переход по линии — демо,
-            внешние сервисы не вызываются.
+            {state.mode === 'live'
+              ? 'Темы → сценарии → генерация → проверка → готово. Карточка открывает редактор. HeyGen и Creatomate не вызываются.'
+              : 'Темы → сценарии → генерация → проверка → готово. Карточка открывает редактор. Переход по линии — демо, внешние сервисы не вызываются.'}
           </p>
         </div>
       </header>
+
+      <NewTopicForm />
 
       <div className="filters">
         <label className="field field--inline">

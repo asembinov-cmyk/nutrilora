@@ -4,11 +4,14 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useState,
+  type ComponentType,
   type Dispatch,
   type ReactNode,
 } from 'react'
 import { INITIAL_ACCOUNTS, INITIAL_VIDEOS } from './data'
-import type { Account, ProductionFilter, Role, Section, Stage, Video } from './types'
+import type { NewAccountInput, NewTopicInput } from './lib/library'
+import type { Account, Language, ProductionFilter, Role, Section, Stage, Video } from './types'
 import { completeCost, DEMO_TODAY, fullCost } from './utils'
 
 interface Notice {
@@ -17,11 +20,14 @@ interface Notice {
 }
 
 export interface State {
+  mode: 'demo' | 'live'
+  email: string | null
+  status: 'ready' | 'loading' | 'error'
   role: Role
   section: Section
   accounts: Account[]
   videos: Video[]
-  selectedVideoId: string
+  selectedVideoId: string | null
   year: number
   month: number
   selectedDay: string
@@ -38,7 +44,7 @@ export type Action =
   | { type: 'set-filter'; patch: Partial<ProductionFilter> }
   | { type: 'focus-stage'; stage: Stage }
   | { type: 'focus-account'; accountId: string }
-  | { type: 'update-script'; id: string; script: string }
+  | { type: 'update-script'; id: string; script: string; language?: Language }
   | { type: 'update-account'; id: string; patch: Partial<Pick<Account, 'niche' | 'language' | 'perDay'>> }
   | { type: 'advance'; id: string }
   | { type: 'approve'; id: string }
@@ -53,10 +59,17 @@ export type Action =
   | { type: 'notice'; text: string }
   | { type: 'dismiss-notice' }
   | { type: 'reset' }
+  | { type: 'hydrate'; accounts: Account[]; videos: Video[] }
+  | { type: 'add-account'; account: Account }
+  | { type: 'add-video'; video: Video }
+  | { type: 'load-failed' }
 
 function fresh(): State {
   const demo = structuredClone({ accounts: INITIAL_ACCOUNTS, videos: INITIAL_VIDEOS })
   return {
+    mode: 'demo',
+    email: null,
+    status: 'ready',
     role: 'owner',
     section: 'overview',
     accounts: demo.accounts,
@@ -71,9 +84,27 @@ function fresh(): State {
   }
 }
 
+export function blankLive(email: string): State {
+  return {
+    ...fresh(),
+    mode: 'live',
+    email,
+    status: 'loading',
+    accounts: [],
+    videos: [],
+    selectedVideoId: null,
+    notice: null,
+    noticeSeq: 0,
+  }
+}
+
 function notify(state: State, text: string): State {
   const noticeSeq = state.noticeSeq + 1
   return { ...state, noticeSeq, notice: { id: noticeSeq, text } }
+}
+
+function say(state: State, live: string, demo: string): string {
+  return state.mode === 'live' ? live : demo
 }
 
 function patchVideo(videos: Video[], id: string, update: (video: Video) => Video): Video[] {
@@ -84,7 +115,7 @@ function findVideo(state: State, id: string): Video | undefined {
   return state.videos.find((video) => video.id === id)
 }
 
-function reducer(state: State, action: Action): State {
+export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'section':
       return { ...state, section: action.section }
@@ -115,7 +146,11 @@ function reducer(state: State, action: Action): State {
     case 'update-script':
       return {
         ...state,
-        videos: patchVideo(state.videos, action.id, (video) => ({ ...video, script: action.script })),
+        videos: patchVideo(state.videos, action.id, (video) => ({
+          ...video,
+          script: action.script,
+          language: action.language ?? video.language,
+        })),
       }
     case 'update-account':
       return {
@@ -128,7 +163,7 @@ function reducer(state: State, action: Action): State {
       const video = findVideo(state, action.id)
       if (!video) return state
       if (video.issue && !video.issue.dismissed) {
-        return notify(state, 'Сначала снимите учебную ошибку. Внешний сервис отсюда не вызывается.')
+        return notify(state, 'Сначала снимите отметку ошибки. Внешний сервис отсюда не вызывается.')
       }
       if (video.stage === 'topic') {
         return notify(
@@ -136,7 +171,7 @@ function reducer(state: State, action: Action): State {
             ...state,
             videos: patchVideo(state.videos, video.id, (item) => ({ ...item, stage: 'script' })),
           },
-          'Тема передана в сценарии. Это демо-переход, API не вызывался.',
+          say(state, 'Тема передана в сценарии.', 'Тема передана в сценарии. Это демо-переход, API не вызывался.'),
         )
       }
       if (video.stage === 'script') {
@@ -149,7 +184,11 @@ function reducer(state: State, action: Action): State {
               cost: item.cost ?? { voice: fullCost(item.language).voice, avatar: 0, assembly: 0 },
             })),
           },
-          'Сценарий отправлен на генерацию в демо-линии. HeyGen и Creatomate не вызывались.',
+          say(
+            state,
+            'Сценарий отмечен как отправленный на генерацию. HeyGen и Creatomate не вызывались.',
+            'Сценарий отправлен на генерацию в демо-линии. HeyGen и Creatomate не вызывались.',
+          ),
         )
       }
       if (video.stage === 'generation') {
@@ -174,7 +213,7 @@ function reducer(state: State, action: Action): State {
         return notify(state, 'Согласование доступно на этапе «Проверка».')
       }
       if (video.issue && !video.issue.dismissed) {
-        return notify(state, 'Сначала разберите учебную ошибку.')
+        return notify(state, 'Сначала разберите ошибку.')
       }
       return notify(
         {
@@ -185,7 +224,11 @@ function reducer(state: State, action: Action): State {
             cost: completeCost(item.cost, item.language),
           })),
         },
-        'Ролик согласован и стоит в колонке «Готово». Во внешние кабинеты он не уходил.',
+        say(
+          state,
+          'Ролик согласован и стоит в колонке «Готово». Во внешние кабинеты он не уходил.',
+          'Ролик согласован и стоит в колонке «Готово». Во внешние кабинеты он не уходил.',
+        ),
       )
     }
     case 'revise': {
@@ -193,7 +236,7 @@ function reducer(state: State, action: Action): State {
       const note = action.note.trim()
       if (!video || note.length < 8) return state
       if (video.published) {
-        return notify(state, 'Опубликованный демо-ролик оставлен только для чтения.')
+        return notify(state, 'Опубликованный ролик оставлен только для чтения.')
       }
       if (video.stage === 'topic') {
         return notify(state, 'Для темы сначала передайте её в сценарии.')
@@ -204,10 +247,15 @@ function reducer(state: State, action: Action): State {
           videos: patchVideo(state.videos, video.id, (item) => ({
             ...item,
             stage: 'script',
+            scheduledAt: null,
             notes: [...item.notes, note],
           })),
         },
-        'Ролик возвращён в «Сценарии» с комментарием. Внешняя пересборка не запускалась.',
+        say(
+          state,
+          'Ролик возвращён в «Сценарии». Слот календаря снят.',
+          'Ролик возвращён в «Сценарии» с комментарием. Внешняя пересборка не запускалась.',
+        ),
       )
     }
     case 'schedule': {
@@ -222,7 +270,7 @@ function reducer(state: State, action: Action): State {
           ...state,
           videos: patchVideo(state.videos, video.id, (item) => ({ ...item, scheduledAt: action.date })),
         },
-        'Слот записан в демо-календарь. В TikTok публикация не ставилась.',
+        say(state, 'Слот записан в календарь. В TikTok публикация не ставилась.', 'Слот записан в демо-календарь. В TikTok публикация не ставилась.'),
       )
     }
     case 'unschedule': {
@@ -233,7 +281,7 @@ function reducer(state: State, action: Action): State {
           ...state,
           videos: patchVideo(state.videos, video.id, (item) => ({ ...item, scheduledAt: null })),
         },
-        'Слот снят с демо-календаря.',
+        say(state, 'Слот снят с календаря.', 'Слот снят с демо-календаря.'),
       )
     }
     case 'publish': {
@@ -243,7 +291,7 @@ function reducer(state: State, action: Action): State {
         return notify(state, 'Сначала поставьте готовый ролик в календарь.')
       }
       if (video.issue && !video.issue.dismissed) {
-        return notify(state, 'На ролике висит учебная ошибка. Снимите отметку, если слот уже разобран.')
+        return notify(state, 'На ролике висит ошибка. Снимите отметку, если слот уже разобран.')
       }
       if (video.published) return state
       return notify(
@@ -251,7 +299,7 @@ function reducer(state: State, action: Action): State {
           ...state,
           videos: patchVideo(state.videos, video.id, (item) => ({ ...item, published: true })),
         },
-        'В демо-календаре ролик отмечен опубликованным. В TikTok он не уходил, просмотры не подставлены.',
+        'В календаре ролик отмечен опубликованным. В TikTok он не уходил, просмотры не подставлены.',
       )
     }
     case 'dismiss-issue':
@@ -262,7 +310,11 @@ function reducer(state: State, action: Action): State {
             video.issue ? { ...video, issue: { ...video.issue, dismissed: true } } : video,
           ),
         },
-        'Учебная отметка снята в этом сеансе. Во внешние сервисы ничего не отправлялось.',
+        say(
+          state,
+          'Отметка ошибки снята. Во внешние сервисы ничего не отправлялось.',
+          'Учебная отметка снята в этом сеансе. Во внешние сервисы ничего не отправлялось.',
+        ),
       )
     case 'show-day': {
       const [year, month] = action.day.split('-').map(Number)
@@ -289,7 +341,33 @@ function reducer(state: State, action: Action): State {
     case 'dismiss-notice':
       return { ...state, notice: null }
     case 'reset':
+      if (state.mode === 'live') {
+        return notify(state, 'Рабочая база не сбрасывается. Нажмите «Обновить из базы».')
+      }
       return notify(fresh(), 'Демо-библиотека возвращена к исходному срезу.')
+    case 'hydrate': {
+      const selectedVideoId = action.videos.some((video) => video.id === state.selectedVideoId)
+        ? state.selectedVideoId
+        : (action.videos[0]?.id ?? null)
+      return {
+        ...state,
+        accounts: action.accounts,
+        videos: action.videos,
+        selectedVideoId,
+        status: 'ready',
+      }
+    }
+    case 'add-account':
+      return { ...state, accounts: [...state.accounts, action.account], status: 'ready' }
+    case 'add-video':
+      return {
+        ...state,
+        videos: [...state.videos, action.video],
+        selectedVideoId: action.video.id,
+        status: 'ready',
+      }
+    case 'load-failed':
+      return notify({ ...state, status: 'error' }, 'Не удалось прочитать библиотеку.')
     default: {
       const unreachable: never = action
       return unreachable
@@ -301,31 +379,85 @@ interface StoreValue {
   state: State
   dispatch: Dispatch<Action>
   accountOf: (id: string) => Account
-  selected: Video
+  selected: Video | null
+  reload: () => void
+  signOut: () => void
+  createAccount: (input: NewAccountInput) => Promise<string | null>
+  createTopic: (input: NewTopicInput) => Promise<string | null>
+  importDemo: () => Promise<string | null>
+  busy: boolean
 }
 
-const StoreContext = createContext<StoreValue | null>(null)
+export const StoreContext = createContext<StoreValue | null>(null)
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, fresh)
-
+export function useNoticeTimer(notice: Notice | null, dispatch: Dispatch<Action>) {
   useEffect(() => {
-    if (!state.notice) return
+    if (!notice) return
     const timer = window.setTimeout(() => dispatch({ type: 'dismiss-notice' }), 4600)
     return () => window.clearTimeout(timer)
-  }, [state.notice])
+  }, [notice, dispatch])
+}
 
-  const value = useMemo<StoreValue>(() => {
-    const accountOf = (id: string) => {
-      const account = state.accounts.find((item) => item.id === id)
-      if (!account) throw new Error(`Нет аккаунта ${id}`)
-      return account
-    }
-    const selected = state.videos.find((video) => video.id === state.selectedVideoId) ?? state.videos[0]
-    return { state, dispatch, accountOf, selected }
-  }, [state])
+export function buildValue(
+  state: State,
+  dispatch: Dispatch<Action>,
+  extras: Pick<StoreValue, 'reload' | 'signOut' | 'createAccount' | 'createTopic' | 'importDemo' | 'busy'>,
+): StoreValue {
+  const accountOf = (id: string) => {
+    const account = state.accounts.find((item) => item.id === id)
+    if (!account) throw new Error(`Нет аккаунта ${id}`)
+    return account
+  }
+  const selected =
+    state.videos.find((video) => video.id === state.selectedVideoId) ?? state.videos[0] ?? null
+  return { state, dispatch, accountOf, selected, ...extras }
+}
 
+const idleLibrary = {
+  busy: false,
+  reload: () => undefined,
+  signOut: () => undefined,
+  createAccount: async () => 'Новый аккаунт доступен после входа в Supabase.',
+  createTopic: async () => 'Новая тема доступна после входа в Supabase.',
+  importDemo: async () => 'Учебная библиотека загружается после входа в Supabase.',
+}
+
+function DemoStore({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, fresh)
+  useNoticeTimer(state.notice, dispatch)
+  const value = useMemo(
+    () =>
+      buildValue(state, dispatch, {
+        ...idleLibrary,
+        reload: () => dispatch({ type: 'reset' }),
+      }),
+    [state],
+  )
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+}
+
+const supabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+
+function LiveGate({ children }: { children: ReactNode }) {
+  const [Live, setLive] = useState<ComponentType<{ children: ReactNode }> | null>(null)
+
+  useEffect(() => {
+    void import('./live').then((mod) => setLive(() => mod.LiveStore))
+  }, [])
+
+  if (!Live) {
+    return (
+      <div className="auth">
+        <p className="auth__wait">Проверяем сессию…</p>
+      </div>
+    )
+  }
+  return <Live>{children}</Live>
+}
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  if (!supabaseConfigured) return <DemoStore>{children}</DemoStore>
+  return <LiveGate>{children}</LiveGate>
 }
 
 export function useStore(): StoreValue {
@@ -335,7 +467,7 @@ export function useStore(): StoreValue {
 }
 
 export function useFilteredVideos(): Video[] {
-  const { state, accountOf } = useStore()
+  const { state } = useStore()
   const { stage, accountId, language, query } = state.productionFilter
   const needle = query.trim().toLowerCase()
   return state.videos.filter((video) => {
@@ -343,7 +475,8 @@ export function useFilteredVideos(): Video[] {
     if (accountId !== 'all' && video.accountId !== accountId) return false
     if (language !== 'all' && video.language !== language) return false
     if (!needle) return true
-    const account = accountOf(video.accountId)
-    return `${video.title} ${account.handle} ${account.niche}`.toLowerCase().includes(needle)
+    const account = state.accounts.find((item) => item.id === video.accountId)
+    const haystack = `${video.title} ${account?.handle ?? ''} ${account?.niche ?? ''}`
+    return haystack.toLowerCase().includes(needle)
   })
 }

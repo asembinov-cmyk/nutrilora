@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { supabaseEnv } from './lib/env'
 import type { Language, Stage } from './types'
 import { LANG_LABEL, STAGE_LABEL } from './utils'
 
@@ -92,6 +93,7 @@ function iconShape(name: IconName): ReactNode {
 }
 
 export function DemoMark() {
+  if (supabaseEnv()) return null
   return <span className="chip chip--demo">демо</span>
 }
 
