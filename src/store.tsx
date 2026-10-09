@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { INITIAL_ACCOUNTS, INITIAL_VIDEOS } from './data'
 import type { NewAccountInput, NewTopicInput } from './lib/library'
-import type { Account, ProductionFilter, Role, Section, Stage, Video } from './types'
+import type { Account, Language, ProductionFilter, Role, Section, Stage, Video } from './types'
 import { completeCost, DEMO_TODAY, fullCost } from './utils'
 
 interface Notice {
@@ -44,7 +44,7 @@ export type Action =
   | { type: 'set-filter'; patch: Partial<ProductionFilter> }
   | { type: 'focus-stage'; stage: Stage }
   | { type: 'focus-account'; accountId: string }
-  | { type: 'update-script'; id: string; script: string }
+  | { type: 'update-script'; id: string; script: string; language?: Language }
   | { type: 'update-account'; id: string; patch: Partial<Pick<Account, 'niche' | 'language' | 'perDay'>> }
   | { type: 'advance'; id: string }
   | { type: 'approve'; id: string }
@@ -146,7 +146,11 @@ export function reducer(state: State, action: Action): State {
     case 'update-script':
       return {
         ...state,
-        videos: patchVideo(state.videos, action.id, (video) => ({ ...video, script: action.script })),
+        videos: patchVideo(state.videos, action.id, (video) => ({
+          ...video,
+          script: action.script,
+          language: action.language ?? video.language,
+        })),
       }
     case 'update-account':
       return {

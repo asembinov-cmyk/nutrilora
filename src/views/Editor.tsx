@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DemoMark, LangChip, StageChip } from '../components'
 import { useStore } from '../store'
+import { ScriptAssist } from './ScriptAssist'
 import { activeIssue, DEMO_TODAY, formatDay, STAGE_LABEL, STAGE_ORDER } from '../utils'
 
 const CHECKS = [
@@ -134,6 +135,7 @@ export function Editor() {
               />
             </label>
             <p className="hint">Ориентир короткого ролика — до 700 знаков. Оценка длительности {video.duration}.</p>
+            <ScriptAssist video={video} live={live} />
             {video.published && (
               <p className="hint">{live ? 'Опубликованный ролик открыт для чтения.' : 'Опубликованный демо-ролик открыт для чтения.'}</p>
             )}

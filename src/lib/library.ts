@@ -242,8 +242,13 @@ export async function saveAccount(supabase: SupabaseClient, account: Account): P
   return error ? explain(error, 'Не удалось сохранить аккаунт. Обновляю библиотеку.') : null
 }
 
-export async function saveScript(supabase: SupabaseClient, id: string, script: string): Promise<string | null> {
-  const { error } = await supabase.from('content_items').update({ script }).eq('id', id)
+export async function saveScript(
+  supabase: SupabaseClient,
+  id: string,
+  script: string,
+  language: 'ru' | 'kk',
+): Promise<string | null> {
+  const { error } = await supabase.from('content_items').update({ script, language }).eq('id', id)
   return error ? explain(error, 'Не удалось сохранить сценарий. Обновляю библиотеку.') : null
 }
 

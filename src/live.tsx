@@ -118,7 +118,7 @@ function LiveLibrary({ email, children }: { email: string; children: ReactNode }
           timers.current.delete(key)
           const video = stateRef.current.videos.find((item) => item.id === action.id)
           if (!video) return
-          void saveScript(supabase, video.id, video.script).then((error) => {
+          void saveScript(supabase, video.id, video.script, video.language).then((error) => {
             if (error) void fail(error)
           })
         }, 500)

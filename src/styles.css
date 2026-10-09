@@ -742,6 +742,13 @@ button {
   background: white;
 }
 
+.assist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 .script--short {
   min-height: 96px;
 }
